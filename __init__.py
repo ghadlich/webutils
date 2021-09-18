@@ -27,18 +27,61 @@ import requests
 import os
 from urllib.request import urlretrieve
 
-def download_images_and_create_animation(base_url, destination_folder, output_filename, framerate=30, hold_last_frame_duration_s=0):
-    """ Takes in a URL and creates an mp4 animation with a given framerate """
+def download_files(base_url, destination_folder):
+    """
+    Downloads all images from a given URL.
 
+    Parameters
+    ----------
+    base_url : str
+        The base URL to download from.
+    destination_folder : str
+        The folder to save the images to.
+
+    Returns
+    -------
+    count : int
+        The number of images downloaded.
+    suffix : str
+        The last part of the image name.
+    """
     os.makedirs(destination_folder, exist_ok=True)
 
     # Make the base url is complete
     if base_url[-1] != "/":
         base_url += "/"
 
-    # Setup Requests
-    r  = requests.get(base_url)
-    data = r.text
+    # somehow requests is caching, doing with wget instead
+    # headers = { 
+    # 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36', 
+    # 'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 
+    # 'Accept-Language' : 'en-US,en;q=0.5', 
+    # 'Accept-Encoding' : 'gzip', 
+    # 'DNT' : '1', # Do Not Track Request Header 
+    # 'Connection' : 'close',
+    # 'Cache-Control' : 'private, max-age=0, no-cache'}
+
+    # headers = {
+    #     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 YaBrowser/19.6.1.153 Yowser/2.5 Safari/537.36",
+    #     "Cache-Control": "no-cache, max-age=0",  # disable caching
+    # }
+
+    # # Setup Requests
+    # r  = requests.get(base_url, headers=headers)
+    # data = r.text
+
+    destination_index = os.path.join(destination_folder, "index.html")
+
+    os.system(f"wget --no-cache --no-cookies -O {destination_index} -q {base_url}")
+
+    if (os.path.exists(destination_index) == False):
+        return 0, ""
+
+    data = ""
+
+    with open(destination_index,'r') as file:
+        data = file.read()
+ 
     soup = BeautifulSoup(data, features="lxml")
 
     # Keep track of number of images downloaded and last name
@@ -57,15 +100,50 @@ def download_images_and_create_animation(base_url, destination_folder, output_fi
     # Retreive the images
     for image in image_list:
         try:
-            urlretrieve(base_url + image, os.path.join(destination_folder, image))
+            save_path = os.path.abspath(os.path.join(destination_folder, image))
+            url = base_url + image
+            if (os.path.exists(save_path) == False):
+                urlretrieve(url, save_path)
             count += 1
         except:
             #print(f"Failed: {base_url + image}")
             pass
 
+    if (len(image_list) > 0):
+        suffix = image_list[0][-4:]
+    else:
+        suffix = ""
+
+    return count, suffix
+
+def download_images_and_create_animation(base_url, destination_folder, output_filename, framerate=30, hold_last_frame_duration_s=0):
+    """
+    Downloads images from a given URL and creates an animation from them.
+
+    Parameters
+    ----------
+    base_url : str
+        The URL to download images from.
+    destination_folder : str
+        The folder to download the images to.
+    output_filename : str
+        The name of the output file.
+    framerate : int, optional
+        The framerate of the animation.
+    hold_last_frame_duration_s : int, optional
+        The duration to hold the last frame of the animation.
+
+    Returns
+    -------
+    animation_path : str
+        The path to the animation.
+    """
+
+    count, suffix = download_files(base_url, destination_folder)
+
     # If there were more than two images, attempt to create an animation
     if (count > 1):
-        images_path = os.path.abspath(os.path.join(destination_folder, "*"+image[-4:]))
+        images_path = os.path.abspath(os.path.join(destination_folder, "*"+suffix))
         animation_path = os.path.abspath(os.path.join(destination_folder, output_filename))
         if hold_last_frame_duration_s > 0:
             hold = f"-vf tpad=stop_mode=clone:stop_duration={hold_last_frame_duration_s}"
@@ -99,9 +177,7 @@ if __name__ == "__main__":
     # download_images_and_create_animation(base_url, destination_folder, output_filename, framerate=framerate)
 
     base_url = "https://services.swpc.noaa.gov/images/animations/ovation/north/"
-    destination_folder = "./animation/aurora/2021-09-12"
+    destination_folder = "./animation/aurora/2021-09-17"
     output_filename = "animation.mp4"
     framerate = 60
     download_images_and_create_animation(base_url, destination_folder, output_filename, framerate=framerate, hold_last_frame_duration_s=3)
-
-    
