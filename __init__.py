@@ -22,10 +22,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE. 
 from bs4 import BeautifulSoup
+import json
 
 import requests
 import os
 from urllib.request import urlretrieve
+from urllib.request import urlopen
+from urllib.request import Request
 
 def download_files(base_url, destination_folder):
     """
@@ -157,6 +160,41 @@ def download_images_and_create_animation(base_url, destination_folder, output_fi
 
     return None
 
+def download_json(url):
+    """
+    Downloads json from a url
+
+    Parameters
+    ----------
+    url : str
+        URL to download
+
+    Returns
+    -------
+    animation_path : dict
+        json dictionary, None if error parsing
+    """
+    if (url == None):
+        return None
+
+    try:
+        req = Request(
+            url, 
+            data=None, 
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
+            }
+        )
+
+        data = urlopen(req).read()
+        jdata = json.loads(data.decode('utf-8'))
+        return jdata
+    except Exception as e:
+        print(e)
+        return None
+
+
+
 if __name__ == "__main__":
     # base_url = "https://services.swpc.noaa.gov/images/animations/lasco-c3/lasco/"
     # destination_folder = "./animation/lasco-c3/2021-09-12"
@@ -176,8 +214,10 @@ if __name__ == "__main__":
     # framerate = 30
     # download_images_and_create_animation(base_url, destination_folder, output_filename, framerate=framerate)
 
-    base_url = "https://services.swpc.noaa.gov/images/animations/ovation/north/"
-    destination_folder = "./animation/aurora/2021-09-17"
-    output_filename = "animation.mp4"
-    framerate = 60
-    download_images_and_create_animation(base_url, destination_folder, output_filename, framerate=framerate, hold_last_frame_duration_s=3)
+    # base_url = "https://services.swpc.noaa.gov/images/animations/ovation/north/"
+    # destination_folder = "./animation/aurora/2021-09-17"
+    # output_filename = "animation.mp4"
+    # framerate = 60
+    # download_images_and_create_animation(base_url, destination_folder, output_filename, framerate=framerate, hold_last_frame_duration_s=3)
+
+    print(download_json("https://colornames.org/search/json/?hex=4c80bd"))
